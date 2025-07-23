@@ -39,7 +39,7 @@ const formatRelativeTime = (date: Date): string => {
   return `${Math.floor(diffInSeconds / 2592000)} months ago`
 }
 
-export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSelectChat, onDeleteChat, onRenameChat, isOpen, onToggle }: SidebarProps) {
+export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSelectChat, onDeleteChat, onRenameChat }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [editingChatId, setEditingChatId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")

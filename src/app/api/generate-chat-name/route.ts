@@ -13,23 +13,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create a system prompt for generating chat titles
-    const systemMessage: Message = {
-      id: 'system-title',
-      role: 'system',
-      content: `Based on the following conversation, generate a concise, descriptive title (2-6 words) that captures the main topic or theme. The title should be:
+    // Take only the first 2-3 messages for context (user messages primarily)
+    const contextMessages = messages.slice(0, 3).filter(msg => msg.role === 'user' || msg.role === 'assistant')
+    
+    // Create a modified message array with system prompt as assistant message
+    const systemPrompt = `Based on the following conversation, generate a concise, descriptive title (2-6 words) that captures the main topic or theme. The title should be:
 - Clear and specific
 - Professional but friendly
 - No more than 50 characters
 - No quotes or special formatting
 - Just return the title text, nothing else
 
-Focus on the core subject matter of the conversation.`,
+Focus on the core subject matter of the conversation.
+
+Conversation:`
+    
+    const systemMessage: Message = {
+      id: 'system-title',
+      role: 'assistant',
+      content: systemPrompt,
       timestamp: new Date()
     }
-
-    // Take only the first 2-3 messages for context (user messages primarily)
-    const contextMessages = messages.slice(0, 3).filter(msg => msg.role === 'user' || msg.role === 'assistant')
     
     const messagesForAI = [systemMessage, ...contextMessages]
 

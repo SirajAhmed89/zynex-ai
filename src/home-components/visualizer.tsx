@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
 interface VisualizerProps {
@@ -9,8 +9,7 @@ interface VisualizerProps {
 }
 
 export default function Visualizer({ isActive, className }: VisualizerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | undefined>(undefined)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const dataArrayRef = useRef<Uint8Array | null>(null)
@@ -18,26 +17,50 @@ export default function Visualizer({ isActive, className }: VisualizerProps) {
   
   const [barHeights, setBarHeights] = useState<number[]>(Array(12).fill(0))
 
-  useEffect(() => {
-    if (isActive) {
-      startVisualization()
-    } else {
-      stopVisualization()
+  const animate = useCallback(() => {
+    if (!analyserRef.current || !dataArrayRef.current) return
+
+    analyserRef.current.getByteFrequencyData(dataArrayRef.current)
+    
+    // Calculate bar heights based on frequency data
+    const newBarHeights = Array(12).fill(0).map((_, index) => {
+      const dataIndex = Math.floor((index * dataArrayRef.current!.length) / 12)
+      const value = dataArrayRef.current![dataIndex] || 0
+      return (value / 255) * 100 // Convert to percentage
+    })
+
+    setBarHeights(newBarHeights)
+    animationRef.current = requestAnimationFrame(animate)
+  }, [])
+
+  const stopVisualization = useCallback(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
     }
 
-    return () => {
-      stopVisualization()
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
     }
-  }, [isActive])
 
-  const startVisualization = async () => {
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+      audioContextRef.current = null
+    }
+
+    analyserRef.current = null
+    dataArrayRef.current = null
+    setBarHeights(Array(12).fill(0))
+  }, [])
+
+  const startVisualization = useCallback(async () => {
     try {
       // Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
 
       // Create audio context
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const audioContext = audioContextRef.current
 
       // Create analyser
@@ -59,43 +82,19 @@ export default function Visualizer({ isActive, className }: VisualizerProps) {
     } catch (error) {
       console.error('Error starting audio visualization:', error)
     }
-  }
+  }, [animate])
 
-  const stopVisualization = () => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
+  useEffect(() => {
+    if (isActive) {
+      startVisualization()
+    } else {
+      stopVisualization()
     }
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-      streamRef.current = null
+    return () => {
+      stopVisualization()
     }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close()
-      audioContextRef.current = null
-    }
-
-    analyserRef.current = null
-    dataArrayRef.current = null
-    setBarHeights(Array(12).fill(0))
-  }
-
-  const animate = () => {
-    if (!analyserRef.current || !dataArrayRef.current) return
-
-    analyserRef.current.getByteFrequencyData(dataArrayRef.current)
-    
-    // Calculate bar heights based on frequency data
-    const newBarHeights = Array(12).fill(0).map((_, index) => {
-      const dataIndex = Math.floor((index * dataArrayRef.current!.length) / 12)
-      const value = dataArrayRef.current![dataIndex] || 0
-      return (value / 255) * 100 // Convert to percentage
-    })
-
-    setBarHeights(newBarHeights)
-    animationRef.current = requestAnimationFrame(animate)
-  }
+  }, [isActive, startVisualization, stopVisualization])
 
   if (!isActive) return null
 

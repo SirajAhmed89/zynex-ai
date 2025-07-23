@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, KeyboardEvent, useEffect, useCallback } from "react"
-import { Send, Mic, MicOff, Volume2, Settings } from "lucide-react"
+import { Send, Mic, MicOff, Volume2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { getVoiceRecognitionService, VoiceRecognitionResult, VoiceRecognitionError } from "@/lib/voice-recognition"
@@ -20,7 +20,7 @@ export function ChatInput({ onSendMessage, disabled = false, className }: ChatIn
   const [isProcessing, setIsProcessing] = useState(false)
   const [voiceError, setVoiceError] = useState<string | null>(null)
   const [interimTranscript, setInterimTranscript] = useState("")
-  const [useAIEnhancement, setUseAIEnhancement] = useState(true)
+  const [useAIEnhancement] = useState(true)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const voiceRecognitionService = getVoiceRecognitionService()
 
