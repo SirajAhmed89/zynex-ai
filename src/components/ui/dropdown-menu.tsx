@@ -13,7 +13,7 @@ const DropdownMenu = React.forwardRef<
     <div className={cn("relative inline-block text-left", className)} ref={ref} {...props}>
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
-          ? React.cloneElement(child, { isOpen, setIsOpen } as any)
+          ? React.cloneElement(child, { isOpen, setIsOpen } as Record<string, unknown>)
           : child
       )}
     </div>
@@ -35,11 +35,10 @@ const DropdownMenuTrigger = React.forwardRef<
 
   if (asChild) {
     return React.cloneElement(children as React.ReactElement, {
-      ref,
       onClick: handleClick,
       "aria-expanded": isOpen,
       "aria-haspopup": true,
-    })
+    } as Record<string, unknown>)
   }
 
   return (
@@ -64,7 +63,7 @@ const DropdownMenuContent = React.forwardRef<
     isOpen?: boolean
     setIsOpen?: (open: boolean) => void
   }
->(({ className, align = "start", isOpen, setIsOpen, children, ...props }, ref) => {
+>(({ className, align = "start", isOpen, setIsOpen, children, ...props }) => {
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sidebar } from "./sidebar"
-import { cn } from "@/lib/utils"
 
 interface MobileMenuProps {
   onNewChat?: () => void

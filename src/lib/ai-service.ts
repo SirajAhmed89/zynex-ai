@@ -53,7 +53,7 @@ async function callOpenRouter(messages: Message[]): Promise<AIResponse> {
       throw new Error('Invalid response format from OpenRouter')
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('OpenRouter API error:', error)
     throw error
   }
@@ -124,7 +124,7 @@ async function callGemini(messages: Message[]): Promise<AIResponse> {
       throw new Error('Invalid response format from Gemini')
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Gemini API error:', error)
     throw error
   }
@@ -149,47 +149,10 @@ export async function getAIResponse(messages: Message[]): Promise<AIResponse> {
       // If both fail, return a friendly error message
       return {
         content: "I apologize, but I'm currently experiencing technical difficulties connecting to my AI services. Please try again in a moment. If the issue persists, please check your API configuration.",
-        error: `Both providers failed: OpenRouter - ${openRouterError.message}, Gemini - ${geminiError.message}`,
+        error: `Both providers failed: OpenRouter - ${openRouterError instanceof Error ? openRouterError.message : 'Unknown error'}, Gemini - ${geminiError instanceof Error ? geminiError.message : 'Unknown error'}`,
         provider: 'fallback'
       }
     }
   }
 }
 
-// Test function to check API connectivity
-export async function testAIConnections(): Promise<{
-  openrouter: boolean
-  gemini: boolean
-  errors: string[]
-}> {
-  const testMessage: Message = {
-    id: 'test',
-    content: 'Hello, this is a test message.',
-    role: 'user',
-    timestamp: new Date()
-  }
-
-  const results = {
-    openrouter: false,
-    gemini: false,
-    errors: [] as string[]
-  }
-
-  // Test OpenRouter
-  try {
-    await callOpenRouter([testMessage])
-    results.openrouter = true
-  } catch (error: any) {
-    results.errors.push(`OpenRouter: ${error.message}`)
-  }
-
-  // Test Gemini
-  try {
-    await callGemini([testMessage])
-    results.gemini = true
-  } catch (error: any) {
-    results.errors.push(`Gemini: ${error.message}`)
-  }
-
-  return results
-}

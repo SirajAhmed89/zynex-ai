@@ -5,7 +5,6 @@ import { Header } from "./header"
 import { Sidebar } from "./sidebar"
 import { Messages, Message } from "./messages"
 import { ChatInput } from "./chat-input"
-import { cn } from "@/lib/utils"
 
 export interface Chat {
   id: string
@@ -28,11 +27,11 @@ export default function HomePage() {
     const savedChats = localStorage.getItem(STORAGE_KEY)
     if (savedChats) {
       try {
-        const parsedChats = JSON.parse(savedChats).map((chat: any) => ({
+        const parsedChats = JSON.parse(savedChats).map((chat: Chat & { messages: (Message & { timestamp: string })[] }) => ({
           ...chat,
           createdAt: new Date(chat.createdAt),
           updatedAt: new Date(chat.updatedAt),
-          messages: chat.messages.map((msg: any) => ({
+          messages: chat.messages.map((msg: Message & { timestamp: string }) => ({
             ...msg,
             timestamp: new Date(msg.timestamp)
           }))
@@ -150,13 +149,13 @@ export default function HomePage() {
           : chat
       ))
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('AI API error:', error)
       
       // Show error message to user
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `I apologize, but I encountered an error while processing your request: ${error.message}. Please try again.`,
+        content: `I apologize, but I encountered an error while processing your request: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         role: "assistant",
         timestamp: new Date()
       }

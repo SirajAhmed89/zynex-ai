@@ -28,8 +28,8 @@ export function ThemeProvider({
   children,
   defaultTheme = "system",
   storageKey = "zynex-theme",
-  attribute = "class",
-  disableTransitionOnChange = true,
+  // attribute = "class",
+  // disableTransitionOnChange = true,
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = React.useState<Theme>(defaultTheme)

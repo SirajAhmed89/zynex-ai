@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { User, Bot, Lightbulb, Wrench, BookOpen, Sparkles } from "lucide-react"
 
@@ -82,7 +81,7 @@ export function Messages({ messages = [], isLoading = false, className }: Messag
             How can I help you today?
           </h2>
           <p className="text-muted-foreground text-lg leading-relaxed">
-            I'm here to assist you with any questions or tasks you might have. Feel free to ask me anything!
+            I&apos;m here to assist you with any questions or tasks you might have. Feel free to ask me anything!
           </p>
           
           {/* Example prompts */}
@@ -92,28 +91,28 @@ export function Messages({ messages = [], isLoading = false, className }: Messag
                 <Lightbulb className="w-4 h-4 text-amber-500" />
                 <span>Explain concepts</span>
               </div>
-              <div className="text-xs text-muted-foreground">"What are React Server Components?"</div>
+              <div className="text-xs text-muted-foreground">&quot;What are React Server Components?&quot;</div>
             </div>
             <div className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
                 <Wrench className="w-4 h-4 text-blue-500" />
                 <span>Debug code</span>
               </div>
-              <div className="text-xs text-muted-foreground">"Help me fix this TypeScript error"</div>
+              <div className="text-xs text-muted-foreground">&quot;Help me fix this TypeScript error&quot;</div>
             </div>
             <div className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
                 <BookOpen className="w-4 h-4 text-green-500" />
                 <span>Learn something new</span>
               </div>
-              <div className="text-xs text-muted-foreground">"Teach me about GraphQL"</div>
+              <div className="text-xs text-muted-foreground">&quot;Teach me about GraphQL&quot;</div>
             </div>
             <div className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
                 <Sparkles className="w-4 h-4 text-purple-500" />
                 <span>Get creative</span>
               </div>
-              <div className="text-xs text-muted-foreground">"Help me brainstorm ideas"</div>
+              <div className="text-xs text-muted-foreground">&quot;Help me brainstorm ideas&quot;</div>
             </div>
           </div>
         </div>
