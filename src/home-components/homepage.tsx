@@ -5,6 +5,7 @@ import { Header } from "./header"
 import { Sidebar } from "./sidebar"
 import { Messages, Message } from "./messages"
 import { ChatInput } from "./chat-input"
+import { cn } from "@/lib/utils"
 
 export interface Chat {
   id: string
@@ -15,14 +16,16 @@ export interface Chat {
 }
 
 const STORAGE_KEY = 'zynex-chats'
+const SIDEBAR_STORAGE_KEY = 'zynex-sidebar-open'
 
 export default function HomePage() {
   const [chats, setChats] = useState<Chat[]>([])
   const [currentMessages, setCurrentMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
-  // Load chats from localStorage on mount
+  // Load chats and sidebar state from localStorage on mount
   useEffect(() => {
     const savedChats = localStorage.getItem(STORAGE_KEY)
     if (savedChats) {
@@ -50,6 +53,12 @@ export default function HomePage() {
         console.error('Failed to load chats from localStorage:', error)
       }
     }
+
+    // Load sidebar state
+    const savedSidebarState = localStorage.getItem(SIDEBAR_STORAGE_KEY)
+    if (savedSidebarState !== null) {
+      setIsSidebarOpen(JSON.parse(savedSidebarState))
+    }
   }, [])
 
   // Save chats to localStorage whenever chats change
@@ -59,12 +68,37 @@ export default function HomePage() {
     }
   }, [chats])
 
-  // Generate chat title from first user message
+  // Generate chat title from first user message (fallback)
   const generateChatTitle = (firstMessage: string): string => {
     const maxLength = 50
     return firstMessage.length > maxLength 
       ? firstMessage.substring(0, maxLength).trim() + '...'
       : firstMessage
+  }
+
+  // Generate AI-powered chat title
+  const generateAIChatTitle = async (messages: Message[]): Promise<string> => {
+    try {
+      const response = await fetch('/api/generate-chat-name', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      return result.title || 'New Conversation'
+    } catch (error) {
+      console.error('Failed to generate AI chat title:', error)
+      // Fallback to first user message
+      const firstUserMessage = messages.find(msg => msg.role === 'user')
+      return firstUserMessage ? generateChatTitle(firstUserMessage.content) : 'New Conversation'
+    }
   }
 
   const handleSendMessage = async (content: string) => {
@@ -149,6 +183,22 @@ export default function HomePage() {
           : chat
       ))
       
+      // Generate AI title after 2-3 messages (when we have enough context)
+      if (finalMessages.length >= 3 && finalMessages.length <= 4) {
+        try {
+          const aiTitle = await generateAIChatTitle(finalMessages)
+          
+          // Update chat title with AI-generated name
+          setChats(prev => prev.map(chat => 
+            chat.id === currentChatId 
+              ? { ...chat, title: aiTitle }
+              : chat
+          ))
+        } catch (error) {
+          console.error('Failed to update chat title:', error)
+        }
+      }
+      
     } catch (error: unknown) {
       console.error('AI API error:', error)
       
@@ -187,15 +237,57 @@ export default function HomePage() {
     }
   }
 
+  const handleDeleteChat = (chatId: string) => {
+    // Remove chat from list
+    setChats(prev => prev.filter(chat => chat.id !== chatId))
+    
+    // If the deleted chat was selected, clear selection
+    if (selectedChatId === chatId) {
+      setSelectedChatId(null)
+      setCurrentMessages([])
+    }
+    
+    // Update localStorage
+    const updatedChats = chats.filter(chat => chat.id !== chatId)
+    if (updatedChats.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedChats))
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  }
+
+  const handleRenameChat = (chatId: string, newTitle: string) => {
+    setChats(prev => prev.map(chat => 
+      chat.id === chatId 
+        ? { ...chat, title: newTitle, updatedAt: new Date() }
+        : chat
+    ))
+  }
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(prev => {
+      const newState = !prev
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(newState))
+      return newState
+    })
+  }
+
   return (
     <div className="flex min-h-screen h-screen bg-background overflow-hidden">
       {/* Sidebar */}
       <Sidebar 
-        className="hidden lg:flex" 
+        className={cn(
+          "hidden lg:flex transition-all duration-300 ease-in-out border-r border-sidebar-border",
+          isSidebarOpen ? "w-64" : "w-0 overflow-hidden border-none"
+        )}
         chats={chats}
         selectedChatId={selectedChatId}
         onNewChat={handleNewChat} 
         onSelectChat={handleSelectChat}
+        onDeleteChat={handleDeleteChat}
+        onRenameChat={handleRenameChat}
+        isOpen={isSidebarOpen}
+        onToggle={handleToggleSidebar}
       />
 
       {/* Main Content */}
@@ -203,6 +295,8 @@ export default function HomePage() {
         <Header 
           onNewChat={handleNewChat} 
           onSelectChat={handleSelectChat}
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarOpen={isSidebarOpen}
         />
         
         {/* Messages Area */}
@@ -215,12 +309,11 @@ export default function HomePage() {
         </div>
         
         {/* Chat Input */}
-        <div className="flex-shrink-0">
-          <ChatInput 
-            onSendMessage={handleSendMessage}
-            disabled={isLoading}
-          />
-        </div>
+        <ChatInput 
+          onSendMessage={handleSendMessage}
+          disabled={isLoading}
+          className="flex-shrink-0"
+        />
       </div>
     </div>
   )

@@ -63,12 +63,14 @@ const DropdownMenuContent = React.forwardRef<
     isOpen?: boolean
     setIsOpen?: (open: boolean) => void
   }
->(({ className, align = "start", isOpen, setIsOpen, children, ...props }) => {
+>(({ className, align = "start", isOpen, setIsOpen, children, ...props }, ref) => {
+
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
+      const element = (ref as React.RefObject<HTMLDivElement>)?.current || contentRef.current
+      if (element && !element.contains(event.target as Node)) {
         setIsOpen?.(false)
       }
     }
@@ -77,13 +79,20 @@ const DropdownMenuContent = React.forwardRef<
       document.addEventListener("mousedown", handleClickOutside)
       return () => document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [isOpen, setIsOpen])
+  }, [isOpen, setIsOpen, ref])
 
   if (!isOpen) return null
 
   return (
     <div
-      ref={contentRef}
+      ref={(element) => {
+        contentRef.current = element
+        if (typeof ref === 'function') {
+          ref(element)
+        } else if (ref) {
+          ref.current = element
+        }
+      }}
       className={cn(
         "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
         align === "end" && "right-0",
