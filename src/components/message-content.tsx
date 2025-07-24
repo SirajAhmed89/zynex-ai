@@ -6,6 +6,7 @@ import { CodeBlock } from "./code-block"
 interface MessageContentProps {
   content: string
   className?: string
+  onOpenPreview?: (htmlContent: string) => void
 }
 
 interface PreviewButtonProps {
@@ -23,7 +24,7 @@ export const PreviewButton = ({ onPreview }: PreviewButtonProps) => {
   );
 };
 
-export function MessageContent({ content, className }: MessageContentProps) {
+export function MessageContent({ content, className, onOpenPreview }: MessageContentProps) {
   const parts = parseMessageContent(content)
 
   return (
@@ -40,6 +41,7 @@ export function MessageContent({ content, className }: MessageContentProps) {
                 code={part.content} 
                 language={part.language} 
                 className="my-2"
+                onOpenPreview={onOpenPreview}
               />
             )
           ) : (

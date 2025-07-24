@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { Chat } from "./homepage"
+import { User as SupabaseUser } from "@supabase/supabase-js"
+import { DbProfile } from "@/lib/database"
 
 interface SidebarProps {
   className?: string
@@ -25,6 +27,9 @@ interface SidebarProps {
   onRenameChat?: (chatId: string, newTitle: string) => void
   isOpen?: boolean
   onToggle?: () => void
+  user?: SupabaseUser | null
+  userProfile?: DbProfile | null
+  onLogout?: () => void
 }
 
 // Helper function to format relative time
@@ -40,7 +45,7 @@ const formatRelativeTime = (date: Date): string => {
   return `${Math.floor(diffInSeconds / 2592000)} months ago`
 }
 
-export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSelectChat, onDeleteChat, onRenameChat }: SidebarProps) {
+export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSelectChat, onDeleteChat, onRenameChat, user, userProfile, onLogout }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [editingChatId, setEditingChatId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
@@ -272,34 +277,36 @@ export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSe
         </div>
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="border-t border-border -my-0.5">
-        <div className="flex items-center justify-between p-4 bg-sidebar-accent m-4 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 bg-primary/20 rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-primary" />
+      {/* Footer - Only show when user is signed in */}
+      {user && (
+        <div className="border-t border-border -my-0.5">
+          <div className="flex items-center justify-between p-4 bg-sidebar-accent m-4 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-primary/20 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-sidebar-foreground">
+                  {userProfile?.name || "User"}
+                </span>
+                <button onClick={onLogout} className="text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                  Sign Out
+                </button>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-sidebar-foreground">
-                User
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Free Plan
-              </span>
+            
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-sidebar-foreground"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
-          
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-sidebar-foreground"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
           </div>
         </div>
-      </div>
+      )}
     </aside>
   )
 }

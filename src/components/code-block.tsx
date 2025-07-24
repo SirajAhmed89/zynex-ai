@@ -2,17 +2,17 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { Copy, Check, Eye, EyeOff } from "lucide-react"
+import { Copy, Check, Eye } from "lucide-react"
 
 interface CodeBlockProps {
   code: string
   language?: string
   className?: string
+  onOpenPreview?: (htmlContent: string) => void
 }
 
-export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
+export function CodeBlock({ code, language = "", className, onOpenPreview }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
 
   const copyToClipboard = async () => {
     try {
@@ -37,14 +37,14 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
         </span>
         <div className="flex items-center gap-2">
           {/* HTML Preview Button */}
-          {isHTML && (
+          {isHTML && onOpenPreview && (
             <button
-              onClick={() => setShowPreview(!showPreview)}
+              onClick={() => onOpenPreview(code)}
               className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors"
-              title={showPreview ? "Hide preview" : "Show preview"}
+              title="Preview HTML"
             >
-              {showPreview ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-              {showPreview ? "Hide" : "Preview"}
+              <Eye className="w-3 h-3" />
+              Preview
             </button>
           )}
           
@@ -69,22 +69,6 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
         </pre>
       </div>
 
-      {/* HTML Preview */}
-      {isHTML && showPreview && (
-        <div className="border-t border-border">
-          <div className="px-4 py-2 bg-muted/30 border-b border-border">
-            <span className="text-xs font-medium text-muted-foreground">Preview</span>
-          </div>
-          <div className="p-4 bg-white">
-            <iframe
-              srcDoc={code}
-              className="w-full h-64 border border-border rounded"
-              title="HTML Preview"
-              sandbox="allow-scripts"
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }

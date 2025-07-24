@@ -97,7 +97,8 @@ export function SimpleTypewriter({
 
 // Utility function to extract HTML content from parsed message parts
 export function extractHtmlContent(text: string): string | null {
-  const parts = parseMessageContent(text)
+  // Use original parsing (without markdown stripping) to detect HTML blocks
+  const parts = parseMessageContent(text, false)
   
   for (const part of parts) {
     if (part.type === 'code' && part.language === 'html') {

@@ -5,14 +5,11 @@ import { cn } from "@/lib/utils"
 import { User, Bot, Lightbulb, Wrench, BookOpen, Sparkles } from "lucide-react"
 import { SimpleTypewriter } from "@/components/simple-typewriter"
 import { MessageContent } from "@/components/message-content"
-import { extractHtmlContent } from "@/components/simple-typewriter"
-import { Eye } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 export interface Message {
   id: string
   content: string
-  role: "user" | "assistant"
+  role: "user" | "assistant" | "system" | "error"
   timestamp: Date
 }
 
@@ -23,10 +20,18 @@ interface MessagesProps {
   currentChatId?: string | null
   onOpenPreview?: () => void
   hasPreviewContent?: boolean
+  onSendMessage?: (message: string) => void
+}
+
+interface AIPrompt {
+  category: string
+  icon: string
+  color: string
+  prompt: string
 }
 
 
-export function Messages({ messages = [], isLoading = false, className, currentChatId, onOpenPreview, hasPreviewContent }: MessagesProps) {
+export function Messages({ messages = [], isLoading = false, className, currentChatId, onOpenPreview, onSendMessage }: MessagesProps) {
   const [displayedMessages, setDisplayedMessages] = useState<Message[]>(messages)
   const [typewriterMessageId, setTypewriterMessageId] = useState<string | null>(null)
   const prevMessagesLength = useRef(0)
@@ -34,6 +39,8 @@ export function Messages({ messages = [], isLoading = false, className, currentC
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+  const [aiPrompts, setAiPrompts] = useState<AIPrompt[]>([])
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false)
 
   // Scroll to bottom function
   const scrollToBottom = (smooth = true) => {
@@ -104,6 +111,117 @@ export function Messages({ messages = [], isLoading = false, className, currentC
     }
   }, [])
 
+  // Generate AI prompts when component mounts and when chat changes
+  useEffect(() => {
+    const generatePrompts = async () => {
+      setIsLoadingPrompts(true)
+      try {
+        const response = await fetch('/api/generate-prompts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setAiPrompts(data.prompts || [])
+        } else {
+          console.error('Failed to generate prompts')
+          // Set fallback prompts
+          setAiPrompts([
+            {
+              category: "Explain concepts",
+              icon: "💡",
+              color: "amber-500",
+              prompt: "What are the key principles of clean code?"
+            },
+            {
+              category: "Debug code",
+              icon: "🐛",
+              color: "blue-500",
+              prompt: "Help me optimize this slow database query"
+            },
+            {
+              category: "Learn something",
+              icon: "📚",
+              color: "green-500",
+              prompt: "Explain how neural networks work"
+            },
+            {
+              category: "Get creative",
+              icon: "✨",
+              color: "purple-500",
+              prompt: "Help me design a modern landing page"
+            }
+          ])
+        }
+      } catch (error) {
+        console.error('Error generating prompts:', error)
+        // Set fallback prompts
+        setAiPrompts([
+          {
+            category: "Explain concepts",
+            icon: "💡",
+            color: "amber-500",
+            prompt: "What are the key principles of clean code?"
+          },
+          {
+            category: "Debug code",
+            icon: "🐛",
+            color: "blue-500",
+            prompt: "Help me optimize this slow database query"
+          },
+          {
+            category: "Learn something",
+            icon: "📚",
+            color: "green-500",
+            prompt: "Explain how neural networks work"
+          },
+          {
+            category: "Get creative",
+            icon: "✨",
+            color: "purple-500",
+            prompt: "Help me design a modern landing page"
+          }
+        ])
+      } finally {
+        setIsLoadingPrompts(false)
+      }
+    }
+
+    // Generate new prompts when messages are empty (new chat or no messages)
+    if (displayedMessages.length === 0 && !isLoading) {
+      generatePrompts()
+    }
+  }, [displayedMessages.length, isLoading])
+
+  const handlePromptClick = (prompt: string) => {
+    if (onSendMessage) {
+      onSendMessage(prompt)
+    }
+  }
+
+  const getIconComponent = (iconString: string) => {
+    switch (iconString) {
+      case '💡': return <Lightbulb className="w-4 h-4" />
+      case '🐛': return <Wrench className="w-4 h-4" />
+      case '📚': return <BookOpen className="w-4 h-4" />
+      case '✨': return <Sparkles className="w-4 h-4" />
+      default: return <span className="text-sm">{iconString}</span>
+    }
+  }
+
+  const getColorClass = (color: string) => {
+    switch (color) {
+      case 'amber-500': return 'text-amber-500'
+      case 'blue-500': return 'text-blue-500'
+      case 'green-500': return 'text-green-500'
+      case 'purple-500': return 'text-purple-500'
+      default: return 'text-primary'
+    }
+  }
+
   if (displayedMessages.length === 0 && !isLoading) {
     return (
       <div className={cn("flex-1 flex items-center justify-center p-6", className)}>
@@ -118,36 +236,36 @@ export function Messages({ messages = [], isLoading = false, className, currentC
             I&apos;m here to assist you with any questions or tasks you might have. Feel free to ask me anything!
           </p>
           
-          {/* Example prompts */}
+          {/* AI-Generated prompts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 max-w-2xl">
-            <div className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
-                <Lightbulb className="w-4 h-4 text-amber-500" />
-                <span>Explain concepts</span>
-              </div>
-              <div className="text-xs text-muted-foreground">&quot;What are React Server Components?&quot;</div>
-            </div>
-            <div className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
-                <Wrench className="w-4 h-4 text-blue-500" />
-                <span>Debug code</span>
-              </div>
-              <div className="text-xs text-muted-foreground">&quot;Help me fix this TypeScript error&quot;</div>
-            </div>
-            <div className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
-                <BookOpen className="w-4 h-4 text-green-500" />
-                <span>Learn something new</span>
-              </div>
-              <div className="text-xs text-muted-foreground">&quot;Teach me about GraphQL&quot;</div>
-            </div>
-            <div className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
-                <Sparkles className="w-4 h-4 text-purple-500" />
-                <span>Get creative</span>
-              </div>
-              <div className="text-xs text-muted-foreground">&quot;Help me brainstorm ideas&quot;</div>
-            </div>
+            {isLoadingPrompts ? (
+              // Loading skeleton
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="p-4 rounded-xl border border-border bg-card/50 animate-pulse">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-4 h-4 bg-muted-foreground/20 rounded" />
+                    <div className="w-20 h-4 bg-muted-foreground/20 rounded" />
+                  </div>
+                  <div className="w-full h-3 bg-muted-foreground/20 rounded" />
+                </div>
+              ))
+            ) : (
+              aiPrompts.map((aiPrompt, index) => (
+                <div 
+                  key={index} 
+                  className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer"
+                  onClick={() => handlePromptClick(aiPrompt.prompt)}
+                >
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
+                    <span className={getColorClass(aiPrompt.color)}>
+                      {getIconComponent(aiPrompt.icon)}
+                    </span>
+                    <span>{aiPrompt.category}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">&quot;{aiPrompt.prompt}&quot;</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -202,23 +320,7 @@ export function Messages({ messages = [], isLoading = false, className, currentC
                 />
               ) : (
                 <>
-                  <MessageContent content={message.content} />
-                  {/* Show preview button if this message has HTML content and it's the last message */}
-                  {message.role === "assistant" && 
-                   message === messages[messages.length - 1] && 
-                   extractHtmlContent(message.content) && 
-                   onOpenPreview && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onOpenPreview}
-                      className="mt-2 text-xs"
-                      disabled={!hasPreviewContent}
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      Preview HTML
-                    </Button>
-                  )}
+                  <MessageContent content={message.content} onOpenPreview={onOpenPreview} />
                 </>
               )}
               <div className={cn(

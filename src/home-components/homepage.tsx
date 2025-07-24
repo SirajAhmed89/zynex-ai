@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Header } from "./header"
 import { Sidebar } from "./sidebar"
 import { Messages, Message } from "./messages"
@@ -8,6 +9,10 @@ import { ChatInput } from "./chat-input"
 import { PreviewPane } from "@/components/preview-pane"
 import { extractHtmlContent } from "@/components/simple-typewriter"
 import { cn } from "@/lib/utils"
+import { ChatService, ProfileService, DbProfile } from "@/lib/database"
+import { supabaseClient as supabase } from "@/lib/supabase-client"
+import { toast } from "sonner"
+import { User } from "@supabase/supabase-js"
 
 export interface Chat {
   id: string
@@ -17,10 +22,10 @@ export interface Chat {
   updatedAt: Date
 }
 
-const STORAGE_KEY = 'zynex-chats'
 const SIDEBAR_STORAGE_KEY = 'zynex-sidebar-open'
 
 export default function HomePage() {
+  const router = useRouter()
   const [chats, setChats] = useState<Chat[]>([])
   const [currentMessages, setCurrentMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -28,58 +33,100 @@ export default function HomePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [previewHtmlContent, setPreviewHtmlContent] = useState<string | null>(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [userProfile, setUserProfile] = useState<DbProfile | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
+  // For anonymous users - temporary chats stored in state only
+  const [tempChats, setTempChats] = useState<Chat[]>([])
 
-  // Load chats and sidebar state from localStorage on mount
+  // Check authentication and load data
   useEffect(() => {
-    const savedChats = localStorage.getItem(STORAGE_KEY)
-    if (savedChats) {
+    const initializeApp = async () => {
       try {
-        const parsedChats = JSON.parse(savedChats).map((chat: Chat & { messages: (Message & { timestamp: string })[] }) => ({
-          ...chat,
-          createdAt: new Date(chat.createdAt),
-          updatedAt: new Date(chat.updatedAt),
-          messages: chat.messages.map((msg: Message & { timestamp: string }) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }))
-        }))
-        setChats(parsedChats)
+        // Check if user is authenticated
+        const { data: { session } } = await supabase.auth.getSession()
         
-        // Auto-select the most recent chat if exists
-        if (parsedChats.length > 0) {
-          const mostRecentChat = parsedChats.sort((a: Chat, b: Chat) => 
-            b.updatedAt.getTime() - a.updatedAt.getTime()
-          )[0]
-          setSelectedChatId(mostRecentChat.id)
-          setCurrentMessages(mostRecentChat.messages)
+        if (session) {
+          // User is signed in - ensure profile exists and load data
+          setUser(session.user)
+          
+          // Ensure profile exists
+          await ProfileService.ensureProfileExists()
+          
+          // Fetch user profile
+          const profile = await ProfileService.getCurrentUserProfile()
+          setUserProfile(profile)
+          
+          const userChats = await ChatService.getAllChats()
+          setChats(userChats)
+
+          // Auto-select the most recent chat if exists
+          if (userChats.length > 0) {
+            const mostRecentChat = userChats[0] // Already sorted by updated_at desc
+            setSelectedChatId(mostRecentChat.id)
+            setCurrentMessages(mostRecentChat.messages)
+          }
+        } else {
+          // User is anonymous - no chats to load, start fresh
+          setUser(null)
+          setChats([])
+          setTempChats([])
         }
+
+        // Load sidebar state from localStorage
+        const savedSidebarState = localStorage.getItem(SIDEBAR_STORAGE_KEY)
+        if (savedSidebarState !== null) {
+          setIsSidebarOpen(JSON.parse(savedSidebarState))
+        }
+
       } catch (error) {
-        console.error('Failed to load chats from localStorage:', error)
+        console.error('Error initializing app:', error)
+        // Don't redirect on error - allow anonymous usage
+        setUser(null)
+      } finally {
+        setIsInitializing(false)
       }
     }
 
-    // Load sidebar state
-    const savedSidebarState = localStorage.getItem(SIDEBAR_STORAGE_KEY)
-    if (savedSidebarState !== null) {
-      setIsSidebarOpen(JSON.parse(savedSidebarState))
-    }
-  }, [])
+    initializeApp()
 
-  // Save chats to localStorage whenever chats change
-  useEffect(() => {
-    if (chats.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
-    }
-  }, [chats])
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        // User signed out - clear user data but don't redirect
+        setUser(null)
+        setChats([])
+        setTempChats([])
+        setCurrentMessages([])
+        setSelectedChatId(null)
+        
+        // Show toast notification for sign out
+        toast.success("Signed out successfully")
+      } else if (event === 'SIGNED_IN' && session) {
+        // User signed in - load their chats
+        setUser(session.user)
+        const userChats = await ChatService.getAllChats()
+        setChats(userChats)
+        // Clear temp chats as user now has persistent storage
+        setTempChats([])
+        
+        // Show toast notification for sign in
+        const userName = session.user.user_metadata?.full_name || "User"
+        toast.success(`Welcome back, ${userName}!`)
+      }
+    })
 
-  // Extract HTML content from assistant messages but don't auto-open preview
+    return () => subscription.unsubscribe()
+  }, [router])
+
+  // Extract HTML content from assistant messages
   useEffect(() => {
     const lastMessage = currentMessages[currentMessages.length - 1]
     if (lastMessage && lastMessage.role === 'assistant') {
       const htmlContent = extractHtmlContent(lastMessage.content)
       if (htmlContent && htmlContent !== previewHtmlContent) {
         setPreviewHtmlContent(htmlContent)
-        // Don't auto-open preview - let user manually open it
+        // Don't auto-open preview - let user click the button to open
       }
     }
   }, [currentMessages, previewHtmlContent])
@@ -126,28 +173,54 @@ export default function HomePage() {
     }
     
     let currentChatId = selectedChatId
+    const setActiveChats = user ? setChats : setTempChats
     
     // If no chat is selected or this is the first message, create a new chat
     if (!currentChatId || currentMessages.length === 0) {
-      currentChatId = `chat-${Date.now()}`
+      const title = generateChatTitle(content)
+      
+      if (user) {
+        // Authenticated user - save to database
+        currentChatId = await ChatService.createChat(title, userMessage)
+        
+        if (!currentChatId) {
+          console.error('Failed to create chat')
+          return
+        }
+      } else {
+        // Anonymous user - create temporary chat
+        currentChatId = `temp_${Date.now()}`
+      }
+      
+      // Create local chat object
       const newChat: Chat = {
         id: currentChatId,
-        title: generateChatTitle(content),
+        title,
         messages: [userMessage],
         createdAt: new Date(),
         updatedAt: new Date()
       }
       
-      setChats(prev => [newChat, ...prev])
+      setActiveChats(prev => [newChat, ...prev])
       setSelectedChatId(currentChatId)
       setCurrentMessages([userMessage])
     } else {
-      // Add message to existing chat
+      if (user) {
+        // Authenticated user - save to database
+        const success = await ChatService.addMessage(currentChatId, userMessage)
+        
+        if (!success) {
+          console.error('Failed to add message')
+          return
+        }
+      }
+
+      // Update local state
       const updatedMessages = [...currentMessages, userMessage]
       setCurrentMessages(updatedMessages)
       
       // Update the chat in the chats array
-      setChats(prev => prev.map(chat => 
+      setActiveChats(prev => prev.map(chat => 
         chat.id === currentChatId 
           ? { ...chat, messages: updatedMessages, updatedAt: new Date() }
           : chat
@@ -157,7 +230,7 @@ export default function HomePage() {
     setIsLoading(true)
     
     try {
-      // Get current messages for context (before adding user message to state)
+      // Get current messages for context
       const messagesForAI = currentMessages.length === 0 ? [userMessage] : [...currentMessages, userMessage]
       
       // Call the AI API
@@ -186,14 +259,24 @@ export default function HomePage() {
         timestamp: new Date()
       }
       
-      // Get the current messages (which now includes the user message)
+      if (user) {
+        // Authenticated user - save to database
+        const success = await ChatService.addMessage(currentChatId!, assistantMessage)
+        
+        if (!success) {
+          console.error('Failed to save assistant message')
+          return
+        }
+      }
+
+      // Update local state
       const currentMessagesWithUser = currentMessages.length === 0 ? [userMessage] : [...currentMessages, userMessage]
       const finalMessages = [...currentMessagesWithUser, assistantMessage]
       
       setCurrentMessages(finalMessages)
       
       // Update the chat with both user and assistant messages
-      setChats(prev => prev.map(chat => 
+      setActiveChats(prev => prev.map(chat => 
         chat.id === currentChatId 
           ? { ...chat, messages: finalMessages, updatedAt: new Date() }
           : chat
@@ -204,8 +287,13 @@ export default function HomePage() {
         try {
           const aiTitle = await generateAIChatTitle(finalMessages)
           
-          // Update chat title with AI-generated name
-          setChats(prev => prev.map(chat => 
+          if (user) {
+            // Update chat title in database for authenticated users
+            await ChatService.updateChatTitle(currentChatId!, aiTitle)
+          }
+          
+          // Update local state
+          setActiveChats(prev => prev.map(chat => 
             chat.id === currentChatId 
               ? { ...chat, title: aiTitle }
               : chat
@@ -226,11 +314,16 @@ export default function HomePage() {
         timestamp: new Date()
       }
       
-      const updatedMessages = [...(currentMessages.length === 0 ? [userMessage] : currentMessages), errorMessage]
+      if (user) {
+        // Save error message to database for authenticated users
+        await ChatService.addMessage(currentChatId!, errorMessage)
+      }
+      
+      const updatedMessages = [...(currentMessages.length === 0 ? [userMessage] : [...currentMessages, userMessage]), errorMessage]
       setCurrentMessages(updatedMessages)
       
       // Update the chat with the error message
-      setChats(prev => prev.map(chat => 
+      setActiveChats(prev => prev.map(chat => 
         chat.id === currentChatId 
           ? { ...chat, messages: updatedMessages, updatedAt: new Date() }
           : chat
@@ -245,35 +338,91 @@ export default function HomePage() {
     setSelectedChatId(null)
   }
 
-  const handleSelectChat = (chatId: string) => {
-    const selectedChat = chats.find(chat => chat.id === chatId)
-    if (selectedChat) {
-      setSelectedChatId(chatId)
-      setCurrentMessages(selectedChat.messages)
+  const handleSelectChat = async (chatId: string) => {
+    console.log('handleSelectChat called with chatId:', chatId)
+    console.log('User authenticated:', !!user)
+    
+    const activeChats = user ? chats : tempChats
+    
+    // Close preview pane when switching chats
+    setIsPreviewOpen(false)
+    
+    try {
+      if (user && !chatId.startsWith('temp_')) {
+        console.log('Loading chat from database for authenticated user')
+        // Load chat from database for authenticated users
+        const selectedChat = await ChatService.getChatById(chatId)
+        console.log('Selected chat from database:', selectedChat ? 'found' : 'not found')
+        
+        if (selectedChat) {
+          console.log('Setting selected chat state - messages count:', selectedChat.messages?.length || 0)
+          setSelectedChatId(chatId)
+          setCurrentMessages(selectedChat.messages || [])
+          
+          // Update local chats array
+          setChats(prev => prev.map(chat => 
+            chat.id === chatId ? selectedChat : chat
+          ))
+        } else {
+          console.error('Failed to load chat from database')
+        }
+      } else {
+        console.log('Loading chat from local state')
+        // Load from local state for anonymous users
+        const selectedChat = activeChats.find(chat => chat.id === chatId)
+        console.log('Selected chat from local state:', selectedChat ? 'found' : 'not found')
+        
+        if (selectedChat) {
+          console.log('Setting selected chat state - messages count:', selectedChat.messages?.length || 0)
+          setSelectedChatId(chatId)
+          setCurrentMessages(selectedChat.messages || [])
+        } else {
+          console.error('Chat not found in local state')
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleSelectChat:', error)
     }
   }
 
-  const handleDeleteChat = (chatId: string) => {
-    // Remove chat from list
-    setChats(prev => prev.filter(chat => chat.id !== chatId))
+  const handleDeleteChat = async (chatId: string) => {
+    const setActiveChats = user ? setChats : setTempChats
+    
+    if (user && !chatId.startsWith('temp_')) {
+      // Delete from database for authenticated users
+      const success = await ChatService.deleteChat(chatId)
+      
+      if (!success) {
+        console.error('Failed to delete chat')
+        return
+      }
+    }
+
+    // Remove chat from local state
+    setActiveChats(prev => prev.filter(chat => chat.id !== chatId))
     
     // If the deleted chat was selected, clear selection
     if (selectedChatId === chatId) {
       setSelectedChatId(null)
       setCurrentMessages([])
     }
-    
-    // Update localStorage
-    const updatedChats = chats.filter(chat => chat.id !== chatId)
-    if (updatedChats.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedChats))
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
-    }
   }
 
-  const handleRenameChat = (chatId: string, newTitle: string) => {
-    setChats(prev => prev.map(chat => 
+  const handleRenameChat = async (chatId: string, newTitle: string) => {
+    const setActiveChats = user ? setChats : setTempChats
+    
+    if (user && !chatId.startsWith('temp_')) {
+      // Update in database for authenticated users
+      const success = await ChatService.updateChatTitle(chatId, newTitle)
+      
+      if (!success) {
+        console.error('Failed to rename chat')
+        return
+      }
+    }
+
+    // Update local state
+    setActiveChats(prev => prev.map(chat => 
       chat.id === chatId 
         ? { ...chat, title: newTitle, updatedAt: new Date() }
         : chat
@@ -290,14 +439,36 @@ export default function HomePage() {
 
   const handleClosePreview = () => {
     setIsPreviewOpen(false)
-    // Keep the content so user can reopen if needed
   }
 
-  const handleOpenPreview = () => {
-    if (previewHtmlContent) {
+  const handleOpenPreview = (htmlContent?: string) => {
+    if (htmlContent) {
+      setPreviewHtmlContent(htmlContent)
+      setIsPreviewOpen(true)
+    } else if (previewHtmlContent) {
       setIsPreviewOpen(true)
     }
   }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    // Don't redirect - let user continue using the app anonymously
+  }
+
+  // Show loading while initializing
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show appropriate chats based on authentication status
+  const displayChats = user ? chats : tempChats
 
   return (
     <div className="flex min-h-screen h-screen bg-background overflow-hidden">
@@ -307,7 +478,7 @@ export default function HomePage() {
           "hidden lg:flex transition-all duration-300 ease-in-out border-r border-sidebar-border",
           isSidebarOpen ? "w-64" : "w-0 overflow-hidden border-none"
         )}
-        chats={chats}
+        chats={displayChats}
         selectedChatId={selectedChatId}
         onNewChat={handleNewChat} 
         onSelectChat={handleSelectChat}
@@ -315,6 +486,9 @@ export default function HomePage() {
         onRenameChat={handleRenameChat}
         isOpen={isSidebarOpen}
         onToggle={handleToggleSidebar}
+        user={user}
+        userProfile={userProfile}
+        onLogout={handleLogout}
       />
 
       {/* Main Content */}
@@ -327,6 +501,10 @@ export default function HomePage() {
           chats={chats}
           onDeleteChat={handleDeleteChat}
           onRenameChat={handleRenameChat}
+          user={user}
+          onLogout={handleLogout}
+          onOpenPreview={handleOpenPreview}
+          hasPreviewContent={!!previewHtmlContent}
         />
         
         {/* Messages Area */}
@@ -338,9 +516,11 @@ export default function HomePage() {
             className="h-full"
             onOpenPreview={handleOpenPreview}
             hasPreviewContent={!!previewHtmlContent}
+            onSendMessage={handleSendMessage}
           />
         </div>
         
+
         {/* Chat Input */}
         <ChatInput 
           onSendMessage={handleSendMessage}
