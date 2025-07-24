@@ -8,6 +8,21 @@ interface MessageContentProps {
   className?: string
 }
 
+interface PreviewButtonProps {
+  onPreview: () => void;
+}
+
+export const PreviewButton = ({ onPreview }: PreviewButtonProps) => {
+  return (
+    <button 
+      onClick={onPreview}
+      className="mt-2 text-blue-500 hover:text-blue-700"
+    >
+      Preview
+    </button>
+  );
+};
+
 export function MessageContent({ content, className }: MessageContentProps) {
   const parts = parseMessageContent(content)
 

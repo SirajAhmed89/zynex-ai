@@ -6,12 +6,32 @@ export interface AIResponse {
   provider: 'openrouter' | 'gemini' | 'fallback'
 }
 
+// System prompt for better code generation
+const SYSTEM_PROMPT = `You are Zynex AI, an expert software developer and coding assistant. You excel at creating complete, functional code solutions.
+
+When creating HTML/CSS files or web components:
+- Always provide complete, functional code
+- Include proper HTML structure with doctype, head, and body tags
+- Add comprehensive CSS styling
+- Make responsive designs that work on all devices
+- Include comments to explain complex parts
+- Don't truncate or shorten code - provide the full implementation
+- Use modern web standards and best practices
+
+For any code request, provide thorough, complete solutions rather than partial examples.`
+
 // Convert our message format to API format
 const formatMessagesForAPI = (messages: Message[]) => {
-  return messages.map(msg => ({
+  const formattedMessages = messages.map(msg => ({
     role: msg.role === 'assistant' ? 'assistant' : 'user',
     content: msg.content
   }))
+  
+  // Add system message at the beginning
+  return [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...formattedMessages
+  ]
 }
 
 // OpenRouter API call
@@ -33,7 +53,11 @@ async function callOpenRouter(messages: Message[]): Promise<AIResponse> {
         "model": "qwen/qwen3-235b-a22b-07-25:free",
         "messages": formatMessagesForAPI(messages),
         "temperature": 0.7,
-        "max_tokens": 1000
+        "max_tokens": 100000, // Very high limit for long responses
+        "top_p": 0.9,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "stream": false // Ensure we get complete response
       })
     })
 
@@ -73,8 +97,8 @@ async function callGemini(messages: Message[]): Promise<AIResponse> {
       throw new Error('No user message found')
     }
 
-    // Build context from conversation history
-    let contextualPrompt = lastUserMessage.content
+    // Build enhanced contextual prompt with system instructions
+    let contextualPrompt = `${SYSTEM_PROMPT}\n\n`
     
     // If there are previous messages, add context
     if (messages.length > 1) {
@@ -82,7 +106,9 @@ async function callGemini(messages: Message[]): Promise<AIResponse> {
         .map(msg => `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}`)
         .join('\n')
       
-      contextualPrompt = `Previous conversation context:\n${conversationContext}\n\nCurrent question: ${lastUserMessage.content}`
+      contextualPrompt += `Previous conversation context:\n${conversationContext}\n\nCurrent question: ${lastUserMessage.content}`
+    } else {
+      contextualPrompt += `User request: ${lastUserMessage.content}`
     }
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
@@ -103,7 +129,10 @@ async function callGemini(messages: Message[]): Promise<AIResponse> {
         ],
         "generationConfig": {
           "temperature": 0.7,
-          "maxOutputTokens": 1000
+          "maxOutputTokens": 100000, // Very high limit for long responses
+          "topP": 0.9,
+          "topK": 40,
+          "stopSequences": [] // Allow full completion
         }
       })
     })

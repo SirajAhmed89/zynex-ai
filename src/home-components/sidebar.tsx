@@ -273,7 +273,7 @@ export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSe
       </ScrollArea>
 
       {/* Footer */}
-      <div className="border-t border-border">
+      <div className="border-t border-border -my-0.5">
         <div className="flex items-center justify-between p-4 bg-sidebar-accent m-4 rounded-lg">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 bg-primary/20 rounded-full flex items-center justify-center">

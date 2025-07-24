@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils"
 import { User, Bot, Lightbulb, Wrench, BookOpen, Sparkles } from "lucide-react"
 import { SimpleTypewriter } from "@/components/simple-typewriter"
 import { MessageContent } from "@/components/message-content"
+import { extractHtmlContent } from "@/components/simple-typewriter"
+import { Eye } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export interface Message {
   id: string
@@ -18,10 +21,12 @@ interface MessagesProps {
   isLoading?: boolean
   className?: string
   currentChatId?: string | null
+  onOpenPreview?: () => void
+  hasPreviewContent?: boolean
 }
 
 
-export function Messages({ messages = [], isLoading = false, className, currentChatId }: MessagesProps) {
+export function Messages({ messages = [], isLoading = false, className, currentChatId, onOpenPreview, hasPreviewContent }: MessagesProps) {
   const [displayedMessages, setDisplayedMessages] = useState<Message[]>(messages)
   const [typewriterMessageId, setTypewriterMessageId] = useState<string | null>(null)
   const prevMessagesLength = useRef(0)
@@ -196,7 +201,25 @@ export function Messages({ messages = [], isLoading = false, className, currentC
                   }}
                 />
               ) : (
-                <MessageContent content={message.content} />
+                <>
+                  <MessageContent content={message.content} />
+                  {/* Show preview button if this message has HTML content and it's the last message */}
+                  {message.role === "assistant" && 
+                   message === messages[messages.length - 1] && 
+                   extractHtmlContent(message.content) && 
+                   onOpenPreview && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onOpenPreview}
+                      className="mt-2 text-xs"
+                      disabled={!hasPreviewContent}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      Preview HTML
+                    </Button>
+                  )}
+                </>
               )}
               <div className={cn(
                 "text-xs mt-1 md:mt-2 opacity-70",

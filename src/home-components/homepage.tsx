@@ -72,14 +72,14 @@ export default function HomePage() {
     }
   }, [chats])
 
-  // Extract HTML content from assistant messages and update preview pane
+  // Extract HTML content from assistant messages but don't auto-open preview
   useEffect(() => {
     const lastMessage = currentMessages[currentMessages.length - 1]
     if (lastMessage && lastMessage.role === 'assistant') {
       const htmlContent = extractHtmlContent(lastMessage.content)
       if (htmlContent && htmlContent !== previewHtmlContent) {
         setPreviewHtmlContent(htmlContent)
-        setIsPreviewOpen(true)
+        // Don't auto-open preview - let user manually open it
       }
     }
   }, [currentMessages, previewHtmlContent])
@@ -290,7 +290,13 @@ export default function HomePage() {
 
   const handleClosePreview = () => {
     setIsPreviewOpen(false)
-    setPreviewHtmlContent(null)
+    // Keep the content so user can reopen if needed
+  }
+
+  const handleOpenPreview = () => {
+    if (previewHtmlContent) {
+      setIsPreviewOpen(true)
+    }
   }
 
   return (
@@ -311,16 +317,6 @@ export default function HomePage() {
         onToggle={handleToggleSidebar}
       />
 
-      {/* Preview Pane */}
-      {isPreviewOpen && previewHtmlContent && (
-        <PreviewPane
-          htmlContent={previewHtmlContent}
-          onClose={handleClosePreview}
-          isOpen={isPreviewOpen}
-          className="w-96 border-r border-sidebar-border"
-        />
-      )}
-
       {/* Main Content */}
       <div className="flex flex-col flex-1 min-w-0 h-full">
         <Header 
@@ -340,6 +336,8 @@ export default function HomePage() {
             isLoading={isLoading}
             currentChatId={selectedChatId}
             className="h-full"
+            onOpenPreview={handleOpenPreview}
+            hasPreviewContent={!!previewHtmlContent}
           />
         </div>
         
@@ -350,6 +348,16 @@ export default function HomePage() {
           className="flex-shrink-0"
         />
       </div>
+
+      {/* Preview Pane - Right side */}
+      {isPreviewOpen && previewHtmlContent && (
+        <PreviewPane
+          htmlContent={previewHtmlContent}
+          onClose={handleClosePreview}
+          isOpen={isPreviewOpen}
+          className="w-80 lg:w-96 border-l border-sidebar-border"
+        />
+      )}
     </div>
   )
 }
