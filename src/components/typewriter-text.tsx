@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { cn } from "@/lib/utils"
-import { parseMessageContent, MessagePart } from "@/lib/message-parser"
-import { CodeBlock } from "./code-block"
 
 interface TypewriterTextProps {
   text: string
@@ -26,7 +24,6 @@ export function TypewriterText({
 }: TypewriterTextProps) {
   const [displayedText, setDisplayedText] = useState("")
   const [, setCurrentIndex] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Calculate dynamic speed based on character
@@ -49,7 +46,6 @@ export function TypewriterText({
       const nextIndex = prevIndex + 1
       
       if (nextIndex >= text.length) {
-        setIsComplete(true)
         onComplete?.()
         return prevIndex
       }
@@ -73,7 +69,6 @@ export function TypewriterText({
     // Reset state when text changes
     setDisplayedText("")
     setCurrentIndex(0)
-    setIsComplete(false)
 
     // Clear any existing timeout
     if (timeoutRef.current) {

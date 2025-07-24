@@ -152,9 +152,9 @@ export function Messages({ messages = [], isLoading = false, className, currentC
   return (
     <div 
       ref={scrollContainerRef}
-      className={cn("flex-1 overflow-y-auto p-6", className)}
+      className={cn("flex-1 overflow-y-auto p-4 md:p-6", className)}
     >
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
         {displayedMessages.map((message) => (
           <div
             key={message.id}
@@ -164,14 +164,14 @@ export function Messages({ messages = [], isLoading = false, className, currentC
             )}
           >
             {message.role === "assistant" && (
-              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                <Bot className="w-4 h-4 text-primary" />
+              <div className="w-7 h-7 md:w-8 md:h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary" />
               </div>
             )}
             
             <div
               className={cn(
-                "max-w-[80%] rounded-2xl px-4 py-3 break-words",
+                "max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 py-2 md:px-4 md:py-3 break-words text-sm md:text-base",
                 message.role === "user"
                   ? "bg-primary text-primary-foreground ml-auto"
                   : "bg-muted text-muted-foreground",
@@ -199,7 +199,7 @@ export function Messages({ messages = [], isLoading = false, className, currentC
                 <MessageContent content={message.content} />
               )}
               <div className={cn(
-                "text-xs mt-2 opacity-70",
+                "text-xs mt-1 md:mt-2 opacity-70",
                 message.role === "user" 
                   ? "text-primary-foreground/70" 
                   : "text-muted-foreground/70"
@@ -212,8 +212,8 @@ export function Messages({ messages = [], isLoading = false, className, currentC
             </div>
             
             {message.role === "user" && (
-              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                <User className="w-4 h-4 text-secondary-foreground" />
+              <div className="w-7 h-7 md:w-8 md:h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-secondary-foreground" />
               </div>
             )}
           </div>

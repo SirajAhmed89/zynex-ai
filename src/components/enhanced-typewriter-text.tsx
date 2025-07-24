@@ -27,7 +27,6 @@ export function EnhancedTypewriterText({
   const [displayedParts, setDisplayedParts] = useState<MessagePart[]>([])
   const [currentPartIndex, setCurrentPartIndex] = useState(0)
   const [currentCharIndex, setCurrentCharIndex] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [parsedParts, setParsedParts] = useState<MessagePart[]>([])
 
@@ -55,7 +54,6 @@ export function EnhancedTypewriterText({
     const parts = parsedParts
     
     if (currentPartIndex >= parts.length) {
-      setIsComplete(true)
       onComplete?.()
       return
     }
@@ -126,7 +124,6 @@ export function EnhancedTypewriterText({
     setDisplayedParts([])
     setCurrentPartIndex(0)
     setCurrentCharIndex(0)
-    setIsComplete(false)
 
     // Clear existing timeout
     if (timeoutRef.current) {

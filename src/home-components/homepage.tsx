@@ -328,6 +328,9 @@ export default function HomePage() {
           onSelectChat={handleSelectChat}
           onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={isSidebarOpen}
+          chats={chats}
+          onDeleteChat={handleDeleteChat}
+          onRenameChat={handleRenameChat}
         />
         
         {/* Messages Area */}

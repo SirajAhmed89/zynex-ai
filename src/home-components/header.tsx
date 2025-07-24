@@ -3,6 +3,7 @@ import { MobileMenu } from "./mobile-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { PanelLeft, PanelLeftClose } from "lucide-react"
+import type { Chat } from "./homepage"
 
 interface HeaderProps {
   className?: string
@@ -10,9 +11,12 @@ interface HeaderProps {
   onSelectChat?: (chatId: string) => void
   onToggleSidebar?: () => void
   isSidebarOpen?: boolean
+  chats?: Chat[]
+  onDeleteChat?: (chatId: string) => void
+  onRenameChat?: (chatId: string, newTitle: string) => void
 }
 
-export function Header({ className, onNewChat, onSelectChat, onToggleSidebar, isSidebarOpen }: HeaderProps) {
+export function Header({ className, onNewChat, onSelectChat, onToggleSidebar, isSidebarOpen, chats, onDeleteChat, onRenameChat }: HeaderProps) {
   return (
     <header 
       className={cn(
@@ -36,7 +40,13 @@ export function Header({ className, onNewChat, onSelectChat, onToggleSidebar, is
           )}
         </Button>
         
-        <MobileMenu onNewChat={onNewChat} onSelectChat={onSelectChat} />
+        <MobileMenu 
+          onNewChat={onNewChat} 
+          onSelectChat={onSelectChat}
+          chats={chats}
+          onDeleteChat={onDeleteChat}
+          onRenameChat={onRenameChat}
+        />
       </div>
       
       <div className="flex-1 flex justify-center lg:justify-center">

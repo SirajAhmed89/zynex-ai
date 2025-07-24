@@ -21,7 +21,6 @@ export function SimpleTypewriter({
   onTyping
 }: SimpleTypewriterProps) {
   const [displayedContent, setDisplayedContent] = useState("")
-  const [isComplete, setIsComplete] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const indexRef = useRef(0)
 
@@ -30,7 +29,6 @@ export function SimpleTypewriter({
 
     // Reset state
     setDisplayedContent("")
-    setIsComplete(false)
     indexRef.current = 0
 
     // Clear any existing interval
@@ -46,7 +44,6 @@ export function SimpleTypewriter({
           clearInterval(intervalRef.current)
           intervalRef.current = null
         }
-        setIsComplete(true)
         onComplete?.()
         return
       }

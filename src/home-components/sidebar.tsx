@@ -148,9 +148,6 @@ export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSe
             />
           </div>
         </div>
-        
-        {/* Main Header Border - Full Width */}
-        <div className="border-b border-border"></div>
       </div>
 
       {/* Chat History */}

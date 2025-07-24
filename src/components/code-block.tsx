@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { Copy, Check, Play, Eye, EyeOff } from "lucide-react"
+import { Copy, Check, Eye, EyeOff } from "lucide-react"
 
 interface CodeBlockProps {
   code: string
