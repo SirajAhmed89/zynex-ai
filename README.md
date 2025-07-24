@@ -1,4 +1,4 @@
-# Zynex AI Studio
+# Zynex AI
 
 An intelligent conversational AI interface powered by **Zynex** - a modern, responsive chat application built with Next.js, TypeScript, and Tailwind CSS.
 
@@ -25,7 +25,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see Zynex AI Studio in action.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see Zynex AI in action.
 
 You can start customizing the application by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
 

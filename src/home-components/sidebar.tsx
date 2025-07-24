@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Plus, Search, Clock, User, Settings, MoreHorizontal, Edit2, Trash2, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -94,27 +95,62 @@ export function Sidebar({ className, chats = [], selectedChatId, onNewChat, onSe
       className
     )}>
       {/* Header */}
-      <div className="px-4 lg:px-6 py-4 border-b border-border bg-card space-y-4">
-        <Button 
-          onClick={onNewChat}
-          className="w-full justify-start gap-3 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-        >
-          <div className="w-4 h-4 bg-white/20 rounded-sm flex items-center justify-center">
-            <Plus className="h-3 w-3" />
+      <div className="bg-card">
+        {/* Logo & Brand Section */}
+        <div className="px-4 lg:px-6 py-2">
+          <div className="flex items-center justify-center py-1.5">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Image
+                  src="/logo.png"
+                  alt="Zynex AI Logo"
+                  width={38}
+                  height={38}
+                  className="object-contain rounded-lg"
+                  priority
+                />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  Zynex AI
+                </h1>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Intelligent Assistant
+                </p>
+              </div>
+            </div>
           </div>
-          New chat
-        </Button>
-        
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-          <Input
-            type="text"
-            placeholder="Search conversations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-9 bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-background rounded-lg transition-all duration-200 placeholder:text-muted-foreground/50"
-          />
         </div>
+        
+        {/* Separator Line - Full Width */}
+        <div className="border-b border-border"></div>
+        
+        {/* Controls Section */}
+        <div className="px-4 lg:px-6 py-4 space-y-4">
+          <Button
+            onClick={onNewChat}
+            className="w-full justify-start gap-3 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <div className="w-4 h-4 bg-white/20 rounded-sm flex items-center justify-center">
+              <Plus className="h-3 w-3" />
+            </div>
+            New chat
+          </Button>
+          
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <Input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-9 bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-background rounded-lg transition-all duration-200 placeholder:text-muted-foreground/50"
+            />
+          </div>
+        </div>
+        
+        {/* Main Header Border - Full Width */}
+        <div className="border-b border-border"></div>
       </div>
 
       {/* Chat History */}

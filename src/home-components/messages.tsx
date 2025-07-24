@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { User, Bot, Lightbulb, Wrench, BookOpen, Sparkles } from "lucide-react"
+import { SimpleTypewriter } from "@/components/simple-typewriter"
+import { MessageContent } from "@/components/message-content"
 
 export interface Message {
   id: string
@@ -15,11 +17,15 @@ interface MessagesProps {
   messages: Message[]
   isLoading?: boolean
   className?: string
+  currentChatId?: string | null
 }
 
 
-export function Messages({ messages = [], isLoading = false, className }: MessagesProps) {
+export function Messages({ messages = [], isLoading = false, className, currentChatId }: MessagesProps) {
   const [displayedMessages, setDisplayedMessages] = useState<Message[]>(messages)
+  const [typewriterMessageId, setTypewriterMessageId] = useState<string | null>(null)
+  const prevMessagesLength = useRef(0)
+  const prevChatId = useRef<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
@@ -43,16 +49,39 @@ export function Messages({ messages = [], isLoading = false, className }: Messag
     }
   }
 
-  // Auto-scroll when messages change
+  // Auto-scroll when messages change and track new AI messages
   useEffect(() => {
     setDisplayedMessages(messages)
+    
+    // Check if we're switching to a different chat
+    const isChatSwitch = currentChatId !== prevChatId.current
+    
+    if (isChatSwitch) {
+      // Clear typewriter effect when switching chats
+      setTypewriterMessageId(null)
+      // Reset message length tracking for new chat
+      prevMessagesLength.current = messages.length
+    } else {
+      // Only apply typewriter effect to newly added AI messages in the same chat
+      if (messages.length > prevMessagesLength.current) {
+        const latestMessage = messages[messages.length - 1]
+        if (latestMessage.role === "assistant") {
+          setTypewriterMessageId(latestMessage.id)
+        }
+      }
+      // Update previous messages length
+      prevMessagesLength.current = messages.length
+    }
+    
+    // Update previous chat ID
+    prevChatId.current = currentChatId ?? null
     
     // Auto-scroll if user is near bottom or if it's a new conversation
     if (shouldAutoScroll || messages.length <= 1) {
       // Small delay to ensure DOM is updated
       setTimeout(() => scrollToBottom(), 100)
     }
-  }, [messages, shouldAutoScroll])
+  }, [messages, shouldAutoScroll, currentChatId])
 
   // Auto-scroll when loading state changes (when AI starts/stops typing)
   useEffect(() => {
@@ -151,9 +180,24 @@ export function Messages({ messages = [], isLoading = false, className }: Messag
                   : "rounded-bl-md"
               )}
             >
-              <div className="whitespace-pre-wrap leading-relaxed">
-                {message.content}
-              </div>
+              {message.role === "assistant" && message.id === typewriterMessageId ? (
+                <SimpleTypewriter 
+                  text={message.content} 
+                  speed={10}
+                  onTyping={() => {
+                    // Auto-scroll during typing if user is near bottom
+                    if (shouldAutoScroll) {
+                      setTimeout(() => scrollToBottom(false), 10)
+                    }
+                  }}
+                  onComplete={() => {
+                    // Clear typewriter effect when typing is complete
+                    setTypewriterMessageId(null)
+                  }}
+                />
+              ) : (
+                <MessageContent content={message.content} />
+              )}
               <div className={cn(
                 "text-xs mt-2 opacity-70",
                 message.role === "user" 

@@ -5,6 +5,8 @@ import { Header } from "./header"
 import { Sidebar } from "./sidebar"
 import { Messages, Message } from "./messages"
 import { ChatInput } from "./chat-input"
+import { PreviewPane } from "@/components/preview-pane"
+import { extractHtmlContent } from "@/components/simple-typewriter"
 import { cn } from "@/lib/utils"
 
 export interface Chat {
@@ -24,6 +26,8 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [previewHtmlContent, setPreviewHtmlContent] = useState<string | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
   // Load chats and sidebar state from localStorage on mount
   useEffect(() => {
@@ -67,6 +71,18 @@ export default function HomePage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
     }
   }, [chats])
+
+  // Extract HTML content from assistant messages and update preview pane
+  useEffect(() => {
+    const lastMessage = currentMessages[currentMessages.length - 1]
+    if (lastMessage && lastMessage.role === 'assistant') {
+      const htmlContent = extractHtmlContent(lastMessage.content)
+      if (htmlContent && htmlContent !== previewHtmlContent) {
+        setPreviewHtmlContent(htmlContent)
+        setIsPreviewOpen(true)
+      }
+    }
+  }, [currentMessages, previewHtmlContent])
 
   // Generate chat title from first user message (fallback)
   const generateChatTitle = (firstMessage: string): string => {
@@ -272,6 +288,11 @@ export default function HomePage() {
     })
   }
 
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false)
+    setPreviewHtmlContent(null)
+  }
+
   return (
     <div className="flex min-h-screen h-screen bg-background overflow-hidden">
       {/* Sidebar */}
@@ -290,6 +311,16 @@ export default function HomePage() {
         onToggle={handleToggleSidebar}
       />
 
+      {/* Preview Pane */}
+      {isPreviewOpen && previewHtmlContent && (
+        <PreviewPane
+          htmlContent={previewHtmlContent}
+          onClose={handleClosePreview}
+          isOpen={isPreviewOpen}
+          className="w-96 border-r border-sidebar-border"
+        />
+      )}
+
       {/* Main Content */}
       <div className="flex flex-col flex-1 min-w-0 h-full">
         <Header 
@@ -304,6 +335,7 @@ export default function HomePage() {
           <Messages 
             messages={currentMessages} 
             isLoading={isLoading}
+            currentChatId={selectedChatId}
             className="h-full"
           />
         </div>

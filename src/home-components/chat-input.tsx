@@ -179,8 +179,10 @@ export function ChatInput({ onSendMessage, disabled = false, className }: ChatIn
                 "w-full resize-none border-0 bg-transparent px-4 py-2 text-sm focus:outline-none focus:ring-0",
                 "placeholder:text-muted-foreground",
                 "disabled:cursor-not-allowed disabled:opacity-50",
-                "min-h-[44px] max-h-[200px] overflow-y-auto"
+                "min-h-[44px] max-h-[200px] overflow-y-auto",
+                "leading-relaxed"
               )}
+              style={{ verticalAlign: 'middle', paddingTop: '10px', paddingBottom: '10px' }}
               rows={1}
             />
           </div>

@@ -14,8 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zynex AI Studio",
+  title: "Zynex AI",
   description: "An intelligent conversational AI interface powered by Zynex - built with Next.js, ShadCN UI, and modern web technologies",
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    title: "Zynex AI",
+    description: "An intelligent conversational AI interface powered by Zynex",
+    images: ['/logo.png'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Zynex AI",
+    description: "An intelligent conversational AI interface powered by Zynex",
+    images: ['/logo.png'],
+  },
 };
 
 export default function RootLayout({

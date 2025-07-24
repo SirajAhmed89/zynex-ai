@@ -25,7 +25,7 @@ async function enhanceTranscriptWithAI(transcript: string, language = 'en-US'): 
         headers: {
           "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://localhost:3000",
-          "X-Title": process.env.NEXT_PUBLIC_SITE_NAME || "Zynex AI Studio",
+          "X-Title": process.env.NEXT_PUBLIC_SITE_NAME || "Zynex AI",
           "Content-Type": "application/json"
         },
         body: JSON.stringify({

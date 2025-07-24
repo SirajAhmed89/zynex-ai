@@ -41,7 +41,7 @@ export function Header({ className, onNewChat, onSelectChat, onToggleSidebar, is
       
       <div className="flex-1 flex justify-center lg:justify-center">
         <div className="text-lg font-semibold tracking-wide text-foreground">
-          Zynex AI Studio
+          Zynex AI
         </div>
       </div>
       
