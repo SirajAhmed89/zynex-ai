@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server'
 
 export async function POST() {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': process.env.NEXT_PUBLIC_SITE_NAME || 'Zynex AI',
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',

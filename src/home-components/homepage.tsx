@@ -11,7 +11,7 @@ import { extractHtmlContent } from "@/components/simple-typewriter"
 import { cn } from "@/lib/utils"
 import { ChatService, ProfileService, DbProfile } from "@/lib/database"
 import { supabaseClient as supabase } from "@/lib/supabase-client"
-import { toast } from "sonner"
+import { useToastActions } from "@/components/ui/toast"
 import { User } from "@supabase/supabase-js"
 
 export interface Chat {
@@ -26,6 +26,7 @@ const SIDEBAR_STORAGE_KEY = 'zynex-sidebar-open'
 
 export default function HomePage() {
   const router = useRouter()
+  const toast = useToastActions()
   const [chats, setChats] = useState<Chat[]>([])
   const [currentMessages, setCurrentMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -99,9 +100,6 @@ export default function HomePage() {
         setTempChats([])
         setCurrentMessages([])
         setSelectedChatId(null)
-        
-        // Show toast notification for sign out
-        toast.success("Signed out successfully")
       } else if (event === 'SIGNED_IN' && session) {
         // User signed in - load their chats
         setUser(session.user)
@@ -117,7 +115,7 @@ export default function HomePage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [router])
+  }, [router, isInitializing])
 
   // Extract HTML content from assistant messages
   useEffect(() => {
