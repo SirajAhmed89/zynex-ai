@@ -63,14 +63,23 @@ export function LoginForm() {
       console.log('📧 Attempting login with email:', email.trim());
       console.log('🔐 Password length:', password.length);
       console.log('🔗 Supabase client status:', {
-        clientExists: !!supabase
+        clientExists: !!supabase,
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'fallback used'
       });
       
       console.log('⏳ Calling supabase.auth.signInWithPassword...');
-      const { data, error } = await supabase.auth.signInWithPassword({ 
+      
+      // Add timeout to prevent infinite loading
+      const loginPromise = supabase.auth.signInWithPassword({ 
         email: email.trim(), 
         password 
       });
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout - please try again')), 30000)
+      });
+      
+      const { data, error } = await Promise.race([loginPromise, timeoutPromise]) as any;
       
       console.log('📥 Supabase response received:', {
         hasData: !!data,
@@ -109,6 +118,9 @@ export function LoginForm() {
           case 'User not found':
             errorMessage = 'No account found with this email address. Please check your email or sign up.';
             break;
+          case 'signup_disabled':
+            errorMessage = 'Authentication service is temporarily unavailable. Please try again later.';
+            break;
           default:
             // Use the original error message if no specific case matches
             errorMessage = error.message;
@@ -118,9 +130,18 @@ export function LoginForm() {
         return;
       }
 
+      if (!data?.user || !data?.session) {
+        console.error('❌ Login successful but no user/session data');
+        setErrors({ general: 'Login failed. Please try again.' });
+        return;
+      }
+
       console.log('✅ Login successful! Redirecting to homepage...');
-      // Success - redirect to homepage
-      // Using window.location.href is fine for auth redirects as it does a full page reload
+      
+      // Use Next.js router for better handling in production
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure session is set
+      
+      // Force a full page reload to ensure auth state is properly initialized
       window.location.href = "/";
       
     } catch (error: unknown) {
@@ -128,8 +149,11 @@ export function LoginForm() {
       
       // Handle network or unexpected errors
       const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage?.includes('fetch')) {
+      
+      if (errorMessage?.includes('fetch') || errorMessage?.includes('network')) {
         setErrors({ general: "Network error. Please check your internet connection and try again." });
+      } else if (errorMessage?.includes('timeout')) {
+        setErrors({ general: "Login is taking longer than expected. Please try again." });
       } else {
         setErrors({ general: "An unexpected error occurred. Please try again." });
       }
