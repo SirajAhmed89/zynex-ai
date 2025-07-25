@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { AuthInput } from "./auth-input"
 import { Mail, Lock, Loader2 } from "lucide-react"
 import { supabaseClient as supabase } from "@/lib/supabase-client"
-import type { AuthResponse } from "@supabase/supabase-js"
 
 interface LoginFormData {
   email: string
@@ -65,7 +64,10 @@ export function LoginForm() {
       console.log('🔐 Password length:', password.length);
       console.log('🔗 Supabase client status:', {
         clientExists: !!supabase,
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'fallback used'
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'fallback used',
+        currentUrl: window.location.href,
+        origin: window.location.origin,
+        hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       });
       
       console.log('⏳ Calling supabase.auth.signInWithPassword...');
@@ -76,12 +78,11 @@ export function LoginForm() {
         password 
       });
       
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Login timeout - please try again')), 30000)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout - please try again')), 15000) // Reduced timeout
       });
       
-      const result = await Promise.race([loginPromise, timeoutPromise]);
-      const { data, error } = result as AuthResponse;
+      const { data, error } = await Promise.race([loginPromise, timeoutPromise]);
       
       console.log('📥 Supabase response received:', {
         hasData: !!data,
