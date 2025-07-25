@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { AuthInput } from "./auth-input"
 import { Mail, Lock, Loader2 } from "lucide-react"
 import { supabaseClient as supabase } from "@/lib/supabase-client"
+import type { AuthResponse } from "@supabase/supabase-js"
 
 interface LoginFormData {
   email: string
@@ -79,7 +80,8 @@ export function LoginForm() {
         setTimeout(() => reject(new Error('Login timeout - please try again')), 30000)
       });
       
-      const { data, error } = await Promise.race([loginPromise, timeoutPromise]) as any;
+      const result = await Promise.race([loginPromise, timeoutPromise]);
+      const { data, error } = result as AuthResponse;
       
       console.log('📥 Supabase response received:', {
         hasData: !!data,

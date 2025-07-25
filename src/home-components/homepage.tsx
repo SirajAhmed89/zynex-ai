@@ -115,7 +115,7 @@ export default function HomePage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [router, isInitializing])
+  }, [router, isInitializing, toast])
 
   // Extract HTML content from assistant messages
   useEffect(() => {
